@@ -14,61 +14,60 @@ NEIGHBORS = [
 NODES = set(range(1, len(NEIGHBORS)))
 
 
-def bronker_bosch1(clique, candidates, excluded, reporter):
+def bronker_bosch(clique, candidates, excluded, reporter, iterator):
+    reporter.inc_count()
+    if not candidates and not excluded:
+        if len(clique) >= MIN_SIZE:
+            reporter.record(clique)
+        return
+
+    for v in iterator(candidates, excluded):
+        new_candidates = candidates.intersection(NEIGHBORS[v])
+        new_excluded = excluded.intersection(NEIGHBORS[v])
+        bronker_bosch(clique + [v], new_candidates, new_excluded, reporter, iterator)
+        candidates.remove(v)
+        excluded.add(v)
+
+
+def bronker_bosch1(nodes, reporter):
     '''Naive Bron–Kerbosch algorithm'''
-    reporter.inc_count()
-    if not candidates and not excluded:
-        if len(clique) >= MIN_SIZE:
-            reporter.report(clique)
-        return
+    def iterator(candidates, excluded):
+        return list(candidates)
 
-    for v in list(candidates):
-        new_candidates = candidates.intersection(NEIGHBORS[v])
-        new_excluded = excluded.intersection(NEIGHBORS[v])
-        bronker_bosch1(clique + [v], new_candidates, new_excluded, reporter)
-        candidates.remove(v)
-        excluded.add(v)
+    bronker_bosch([], set(nodes), set(), reporter, iterator)
 
 
-def bronker_bosch2(clique, candidates, excluded, reporter):
+def bronker_bosch2(nodes, reporter):
     '''Bron–Kerbosch algorithm with pivot'''
-    reporter.inc_count()
-    if not candidates and not excluded:
-        if len(clique) >= MIN_SIZE:
-            reporter.report(clique)
-        return
+    def iterator(candidates, excluded):
+        pivot = pick_from_set(candidates) or pick_from_set(excluded)
+        return list(candidates.difference(NEIGHBORS[pivot]))
 
-    pivot = pick_random(candidates) or pick_random(excluded)
-    for v in list(candidates.difference(NEIGHBORS[pivot])):
-        new_candidates = candidates.intersection(NEIGHBORS[v])
-        new_excluded = excluded.intersection(NEIGHBORS[v])
-        bronker_bosch2(clique + [v], new_candidates, new_excluded, reporter)
-        candidates.remove(v)
-        excluded.add(v)
+    bronker_bosch([], set(nodes), set(), reporter, iterator)
 
 
-def bronker_bosch3(clique, candidates, excluded, reporter):
+def bronker_bosch3(nodes, reporter):
     '''Bron–Kerbosch algorithm with pivot and degeneracy ordering'''
-    reporter.inc_count()
-    if not candidates and not excluded:
-        if len(clique) >= MIN_SIZE:
-            reporter.report(clique)
-        return
+    first = [True]
 
-    for v in list(degeneracy_order(candidates)):
-        new_candidates = candidates.intersection(NEIGHBORS[v])
-        new_excluded = excluded.intersection(NEIGHBORS[v])
-        bronker_bosch2(clique + [v], new_candidates, new_excluded, reporter)
-        candidates.remove(v)
-        excluded.add(v)
+    def iterator(candidates, excluded):
+        # Iterate in degeneracy order at the first depth
+        if first[0]:
+            first[0] = False
+            return list(degeneracy_order(candidates))
+        # In deeper calls, act like bronker_bosch2
+        else:
+            pivot = pick_from_set(candidates) or pick_from_set(excluded)
+            return list(candidates.difference(NEIGHBORS[pivot]))
+
+    bronker_bosch([], set(nodes), set(), reporter, iterator)
 
 
-def pick_random(s):
-    if s:
-        elem = s.pop()
-        s.add(elem)
+def pick_from_set(_set):
+    if _set:
+        elem = _set.pop()
+        _set.add(elem)
         return elem
-
 
 def degeneracy_order(nodes):
     # FIXME: can improve it to linear time
@@ -94,10 +93,10 @@ class Reporter(object):
     def inc_count(self):
         self.cnt += 1
 
-    def report(self, clique):
+    def record(self, clique):
         self.cliques.append(clique)
 
-    def _print(self):
+    def print_report(self):
         print self.name
         print '%d recursive calls' % self.cnt
         for i, clique in enumerate(self.cliques):
@@ -109,8 +108,8 @@ def main():
     for version in xrange(1, 4):
         func = globals()['bronker_bosch%d' % version]
         report = Reporter('## %s' % func.func_doc)
-        func([], set(NODES), set(), report)
-        report._print()
+        func(NODES, report)
+        report.print_report()
 
 
 if __name__ == '__main__':
