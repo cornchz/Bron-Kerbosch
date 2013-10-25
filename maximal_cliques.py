@@ -53,7 +53,7 @@ def bronker_bosch3(clique, candidates, excluded, reporter):
             reporter.report(clique)
         return
 
-    for v in degeneracy_order(candidates):
+    for v in list(degeneracy_order(candidates)):
         new_candidates = candidates.intersection(NEIGHBORS[v])
         new_excluded = excluded.intersection(NEIGHBORS[v])
         bronker_bosch2(clique + [v], new_candidates, new_excluded, reporter)
