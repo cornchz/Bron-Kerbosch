@@ -1,7 +1,6 @@
 # coding: utf-8
 
 MIN_SIZE = 3
-
 NEIGHBORS = [
     [], # I want to start index from 1 instead of 0
     [2, 3, 4],
@@ -16,6 +15,7 @@ NODES = set(range(1, len(NEIGHBORS)))
 
 
 def bronker_bosch1(clique, candidates, excluded, reporter):
+    '''Naive Bron–Kerbosch algorithm'''
     reporter.inc_count()
     if not candidates and not excluded:
         if len(clique) >= MIN_SIZE:
@@ -31,6 +31,7 @@ def bronker_bosch1(clique, candidates, excluded, reporter):
 
 
 def bronker_bosch2(clique, candidates, excluded, reporter):
+    '''Bron–Kerbosch algorithm with pivot'''
     reporter.inc_count()
     if not candidates and not excluded:
         if len(clique) >= MIN_SIZE:
@@ -47,6 +48,7 @@ def bronker_bosch2(clique, candidates, excluded, reporter):
 
 
 def bronker_bosch3(clique, candidates, excluded, reporter):
+    '''Bron–Kerbosch algorithm with pivot and degeneracy ordering'''
     reporter.inc_count()
     if not candidates and not excluded:
         if len(clique) >= MIN_SIZE:
@@ -84,7 +86,8 @@ def degeneracy_order(nodes):
 
 
 class Reporter(object):
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.cnt = 0
         self.cliques = []
 
@@ -95,15 +98,18 @@ class Reporter(object):
         self.cliques.append(clique)
 
     def _print(self):
+        print self.name
         print '%d recursive calls' % self.cnt
         for i, clique in enumerate(self.cliques):
             print '%d: %s' % (i, clique)
+        print
 
 
 def main():
     for version in xrange(1, 4):
-        report = Reporter()
-        globals()['bronker_bosch%d' % version]([], set(NODES), set(), report)
+        func = globals()['bronker_bosch%d' % version]
+        report = Reporter('## %s' % func.func_doc)
+        func([], set(NODES), set(), report)
         report._print()
 
 
