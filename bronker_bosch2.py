@@ -9,7 +9,7 @@ def bronker_bosch2(clique, candidates, excluded, reporter):
     reporter.inc_count()
     if not candidates and not excluded:
         if len(clique) >= MIN_SIZE:
-            reporter.report(clique)
+            reporter.record(clique)
         return
  
     pivot = pick_random(candidates) or pick_random(excluded)

@@ -10,7 +10,7 @@ def bronker_bosch3(clique, candidates, excluded, reporter):
     reporter.inc_count()
     if not candidates and not excluded:
         if len(clique) >= MIN_SIZE:
-            reporter.report(clique)
+            reporter.record(clique)
         return
  
     for v in list(degeneracy_order(candidates)):

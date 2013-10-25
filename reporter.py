@@ -9,10 +9,10 @@ class Reporter(object):
     def inc_count(self):
         self.cnt += 1
  
-    def report(self, clique):
+    def record(self, clique):
         self.cliques.append(clique)
  
-    def _print(self):
+    def print_report(self):
         print self.name
         print '%d recursive calls' % self.cnt
         for i, clique in enumerate(self.cliques):
