@@ -14,79 +14,85 @@ NEIGHBORS = [
 NODES = set(range(1, len(NEIGHBORS)))
 
 
-def bronker_bosch(clique, candidates, excluded, reporter, iterator):
-    reporter.inc_count()
-    if not candidates and not excluded:
-        if len(clique) >= MIN_SIZE:
-            reporter.record(clique)
-        return
+class BronkerBosch(object):
+    def __init__(self):
+        self.reporter = Reporter(self.__class__.__name__)
 
-    for v in iterator(candidates, excluded):
-        new_candidates = candidates.intersection(NEIGHBORS[v])
-        new_excluded = excluded.intersection(NEIGHBORS[v])
-        bronker_bosch(clique + [v], new_candidates, new_excluded, reporter, iterator)
-        candidates.remove(v)
-        excluded.add(v)
+    def iterator(self, candidates, excluded):
+        raise NotImplementedError()
+
+    def run(self, nodes):
+        self.reporter.clear()
+        self.recur([], set(nodes), set())
+        self.reporter.print_report()
+
+    def recur(self, clique, candidates, excluded):
+        self.reporter.inc_count()
+        if not candidates and not excluded:
+            if len(clique) >= MIN_SIZE:
+                self.reporter.record(clique)
+            return
+
+        for v in self.iterator(candidates, excluded):
+            new_candidates = candidates.intersection(NEIGHBORS[v])
+            new_excluded = excluded.intersection(NEIGHBORS[v])
+            self.recur(clique + [v], new_candidates, new_excluded)
+            candidates.remove(v)
+            excluded.add(v)
 
 
-def bronker_bosch1(nodes, reporter):
-    '''Naive Bron–Kerbosch algorithm'''
-    def iterator(candidates, excluded):
+class BronkerBosch1(BronkerBosch):
+    def iterator(self, candidates, excluded):
         return list(candidates)
 
-    bronker_bosch([], set(nodes), set(), reporter, iterator)
 
-
-def bronker_bosch2(nodes, reporter):
-    '''Bron–Kerbosch algorithm with pivot'''
-    def iterator(candidates, excluded):
-        pivot = pick_from_set(candidates) or pick_from_set(excluded)
+class BronkerBosch2(BronkerBosch):
+    def iterator(self, candidates, excluded):
+        pivot = self.pick_from_set(candidates) or self.pick_from_set(excluded)
         return list(candidates.difference(NEIGHBORS[pivot]))
 
-    bronker_bosch([], set(nodes), set(), reporter, iterator)
+    def pick_from_set(self, _set):
+        if _set:
+            elem = _set.pop()
+            _set.add(elem)
+            return elem
 
 
-def bronker_bosch3(nodes, reporter):
-    '''Bron–Kerbosch algorithm with pivot and degeneracy ordering'''
-    first = [True]
+class BronkerBosch3(BronkerBosch2):
+    def run(self, nodes):
+        self.first = True
+        super(BronkerBosch3, self).run(nodes)
 
-    def iterator(candidates, excluded):
+    def iterator(self, candidates, excluded):
         # Iterate in degeneracy order at the first depth
-        if first[0]:
-            first[0] = False
-            return list(degeneracy_order(candidates))
+        if self.first:
+            self.first = False
+            return list(self.degeneracy_order(candidates))
         # In deeper calls, act like bronker_bosch2
         else:
-            pivot = pick_from_set(candidates) or pick_from_set(excluded)
-            return list(candidates.difference(NEIGHBORS[pivot]))
+            return super(BronkerBosch3, self).iterator(candidates, excluded)
 
-    bronker_bosch([], set(nodes), set(), reporter, iterator)
+    def degeneracy_order(self, nodes):
+        # FIXME: can improve it to linear time
+        deg = {}
+        for node in nodes:
+            deg[node] = len(NEIGHBORS[node])
 
-
-def pick_from_set(_set):
-    if _set:
-        elem = _set.pop()
-        _set.add(elem)
-        return elem
-
-def degeneracy_order(nodes):
-    # FIXME: can improve it to linear time
-    deg = {}
-    for node in nodes:
-        deg[node] = len(NEIGHBORS[node])
-
-    while deg:
-        i, v = min(deg.iteritems(), key=lambda (i, v): v)
-        yield i
-        del deg[i]
-        for v in NEIGHBORS[i]:
-            if v in deg:
-                deg[v] -= 1
+        while deg:
+            i, v = min(deg.iteritems(), key=lambda (i, v): v)
+            yield i
+            del deg[i]
+            for v in NEIGHBORS[i]:
+                if v in deg:
+                    deg[v] -= 1
 
 
 class Reporter(object):
     def __init__(self, name):
         self.name = name
+        self.clear()
+
+    def clear(self):
         self.cnt = 0
         self.cliques = []
 
@@ -105,11 +111,9 @@ class Reporter(object):
 
 
 def main():
-    for version in xrange(1, 4):
-        func = globals()['bronker_bosch%d' % version]
-        report = Reporter('## %s' % func.func_doc)
-        func(NODES, report)
-        report.print_report()
+    BronkerBosch1().run(NODES)
+    BronkerBosch2().run(NODES)
+    BronkerBosch3().run(NODES)
 
 
 if __name__ == '__main__':
