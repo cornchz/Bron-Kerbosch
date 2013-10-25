@@ -38,7 +38,7 @@ def bronker_bosch2(clique, candidates, excluded, reporter):
         return
 
     pivot = pick_random(candidates) or pick_random(excluded)
-    for v in list(candidates.difference(set(NEIGHBORS[pivot]))):
+    for v in list(candidates.difference(NEIGHBORS[pivot])):
         new_candidates = candidates.intersection(NEIGHBORS[v])
         new_excluded = excluded.intersection(NEIGHBORS[v])
         bronker_bosch2(clique + [v], new_candidates, new_excluded, reporter)
